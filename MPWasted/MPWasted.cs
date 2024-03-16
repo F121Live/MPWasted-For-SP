@@ -36,6 +36,7 @@ namespace MPWasted
             Hud.IsRadarVisible = true;
             Function.Call(Hash.DISPLAY_HUD, true);//Doesn't work here?
             Function.Call(Hash.DISPLAY_RADAR, true);//Doesn't work here, either.
+            Game.Player.Character.DropsEquippedWeaponOnDeath = false;
             ForceTimeScale();
         }
 
@@ -50,15 +51,13 @@ namespace MPWasted
                 timeScale = Game.TimeScale;
                 if (timeScale != 1f)
                     Game.TimeScale = 1f;
-                Wait(100);
                 if (timeScale != 1f)
                     Game.TimeScale = 1f;
                 GTA.UI.Screen.StopEffects();
                 Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
                 needsHospital = false;
             }
-            Game.Player.Character.DropsEquippedWeaponOnDeath = false;
-            if (Game.Player.IsDead || Game.Player.Character.Health == 0 && !needsHospital)
+            if (Game.Player.Character.Health <= 0 || (!Game.Player.CanControlCharacter || (Game.Player.Character.IsInjured)) || Game.Player.IsDead && !needsHospital)
                 Respawn_Controller();
         }
 
@@ -250,6 +249,7 @@ namespace MPWasted
             }
             if (!initialized && !Game.IsLoading)
             {
+                NoSlowMotion.NeedsHospital(false);
                 respawnpos = GetCoords();
                 Function.Call(Hash.SET_AUDIO_FLAG, "LoadMPData", true);
                 Function.Call(Hash.REQUEST_SCRIPT_AUDIO_BANK, "mp_wasted", 1);
@@ -314,7 +314,7 @@ namespace MPWasted
             {
                 GTA.UI.Screen.FadeOut(500);
                 respawning = true;
-                Wait(2500);
+                Wait(900);
                 AttemptRespawn();
             }
             else
