@@ -372,10 +372,10 @@ namespace MPWasted
             do
             {
                 i = i + 20;
-                rand.X = rng.Next(-160, 160);
-                rand.Y = rng.Next(-180, 180);
-                rand.Z = rng.Next(-5, 50);
-                range = rng.Next(50, 180);
+                rand.X = rng.Next(-160 - i, 160 + i);
+                rand.Y = rng.Next(-180 - i, 180 + i);
+                rand.Z = rng.Next(-15, 50);
+                range = rng.Next(50, 180 + i);
                 coords = Game.Player.Character.Position;
                 point = Function.Call<Vector3>(Hash.FIND_SPAWN_POINT_IN_DIRECTION, coords.X + rand.X, coords.Y + rand.Y, coords.Z + rand.Z, 0, 0, 0, range, tempcoords);
                 spawnPoint = GTA.World.GetSafeCoordForPed(tempcoords.GetResult<Vector3>(), paviment, 0);
@@ -388,7 +388,7 @@ namespace MPWasted
                     oldSpawn = spawnPoint;
                     return spawnPoint;
                 }
-                if (i > 200)
+                if (i > 1200)
                 {
                     i = 0;
                     break;
