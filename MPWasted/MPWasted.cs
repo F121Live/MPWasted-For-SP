@@ -28,14 +28,17 @@ namespace MPWasted
         void Respawn_Controller()
         {
             Function.Call(Hash.DISPLAY_HUD_WHEN_NOT_IN_STATE_OF_PLAY_THIS_FRAME);
-            Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 21);
+            Function.Call(Hash.SET_RADAR_AS_EXTERIOR_THIS_FRAME);//Doesn't work here, either.
+            Function.Call(Hash.DISPLAY_RADAR, true);//Doesn't work here, either.
+            //Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 21);
+            //Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 18);
             Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
             Function.Call(Hash.IGNORE_NEXT_RESTART, true);
             Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
-            Hud.IsVisible = true;
-            Hud.IsRadarVisible = true;
-            Function.Call(Hash.DISPLAY_HUD, true);//Doesn't work here?
-            Function.Call(Hash.DISPLAY_RADAR, true);//Doesn't work here, either.
+            //Function.Call(Hash.DISPLAY_HUD, true);//Doesn't work here?
+            //Function.Call(Hash.DISPLAY_RADAR, true);//Doesn't work here, either.
+            //Hud.IsVisible = true;
+            //Hud.IsRadarVisible = true;
             Game.Player.Character.DropsEquippedWeaponOnDeath = false;
             ForceTimeScale();
         }
@@ -98,6 +101,7 @@ namespace MPWasted
             Tick += OnTick;
             KeyUp += OnKeyUp;
             KeyDown += OnKeyDown;
+            LoadResources();
         }
         private void OnTick(object sender, EventArgs e)
         {
@@ -188,7 +192,7 @@ namespace MPWasted
 
         public static Scaleform movie;
 
-        int tick = 0;
+        public static int tick = 0;
 
         public ShardManager()
         {
@@ -199,9 +203,6 @@ namespace MPWasted
         {
             if (Game.Player.Character.Health <= 0)
                 ShowShard();
-            else
-                if (tick != 0)
-                tick = 0;
         }
 
         public static void LoadShard()
@@ -212,13 +213,14 @@ namespace MPWasted
 
         public static void CallShard()
         {
+            tick = 0;
             movie.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", wasted, "", 27); // "27" sets the color to Red, then the game automatically fades it back to white.
         }
 
         private void ShowShard()
         {
             tick++;
-            if (tick > 140)
+            if (tick > 110)
             {
                 movie.Render2D();
             }
