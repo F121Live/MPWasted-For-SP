@@ -352,7 +352,7 @@ namespace MPWasted
             int i = 0;
             int range = 0;
             bool paviment;
-            if (Game.Player.Character.Position.X >= 800) // Check if player is out of LS.
+            if (Game.Player.Character.Position.Y >= 400) // Check if player is out of LS.
             {
                 paviment = false; // If out of LS, there's no paviment to spawn in.
                 // This confuses the game if set to true, as there's nothing considered paviment
@@ -371,13 +371,13 @@ namespace MPWasted
             OutputArgument temproadheading = new OutputArgument();
             do
             {
-                i = i + 20;
+                i = i + 100;
                 rand.X = rng.Next(-160 - i, 160 + i);
                 rand.Y = rng.Next(-180 - i, 180 + i);
                 rand.Z = rng.Next(-15, 50);
                 range = rng.Next(50, 180 + i);
                 coords = Game.Player.Character.Position;
-                point = Function.Call<Vector3>(Hash.FIND_SPAWN_POINT_IN_DIRECTION, coords.X + rand.X, coords.Y + rand.Y, coords.Z + rand.Z, 0, 0, 0, range, tempcoords);
+                point = Function.Call<Vector3>(Hash.FIND_SPAWN_POINT_IN_DIRECTION, coords.X + rand.X, coords.Y + rand.Y, coords.Z + rand.Z, rand.X, rand.Y, rand.Z, range, tempcoords);
                 spawnPoint = GTA.World.GetSafeCoordForPed(tempcoords.GetResult<Vector3>(), paviment, 0);
                 Wait(5); // We wait or else the game stutters.
                 if (spawnPoint.X != 0f && spawnPoint.Y != 0f && spawnPoint.Z != 0f)
@@ -388,7 +388,7 @@ namespace MPWasted
                     oldSpawn = spawnPoint;
                     return spawnPoint;
                 }
-                if (i > 1200)
+                if (i > 200)
                 {
                     i = 0;
                     break;
