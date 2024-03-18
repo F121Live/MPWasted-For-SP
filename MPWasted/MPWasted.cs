@@ -57,7 +57,7 @@ namespace MPWasted
                 Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
                 needsHospital = false;
             }
-            if (Game.Player.Character.Health <= 0 || (!Game.Player.CanControlCharacter || (Game.Player.Character.IsInjured)) || Game.Player.IsDead && !needsHospital)
+            if (Game.Player.Character.Health <= 0 && !needsHospital)
                 Respawn_Controller();
         }
 
@@ -85,17 +85,13 @@ namespace MPWasted
     public class MPWasted : Script
     {
 
-        private bool alreadyPlayed = false;
+        private bool playedWastedSounds = false;
+
+        private bool playedPart2 = false;
 
         private bool playCamRepeat = true;
 
-        bool isLoaded = false;
-
-        bool showShard = false;
-
-        string wasted;
-
-        Scaleform movie;
+        public static bool isLoaded = false;
 
         public MPWasted()
         {
@@ -105,13 +101,12 @@ namespace MPWasted
         }
         private void OnTick(object sender, EventArgs e)
         {
-            if (!isLoaded && !Game.IsLoading)
+            if (Game.Player.Character.Health <= 0)
             {
-                LoadResources();
-            }
-            if (Game.Player.IsDead || Game.Player.Character.Health == 0)
-            {
-                ShowShard();
+                if (!isLoaded && !Game.IsLoading)
+                {
+                    LoadResources();
+                }
                 if (playCamRepeat)
                 {
                     playCamRepeat = false;
@@ -121,7 +116,7 @@ namespace MPWasted
             }
             else
             {
-                alreadyPlayed = false;
+                playedWastedSounds = false;
                 CameraOff();
             }
         }
@@ -147,50 +142,88 @@ namespace MPWasted
         {
         }
 
-        private void LoadResources() // Load MP audio resources and Scaleform.
+        public static void LoadResources() // Load MP audio resources and Scaleform.
         {
             Function.Call(Hash.NETWORK_REQUEST_CONTROL_OF_ENTITY, Game.Player.Character);
             Function.Call(Hash.SET_AUDIO_FLAG, "LoadMPData", true);
-            wasted = Game.GetLocalizedString("RESPAWN_W_MP"); // Gets white colour Wasted variant.
-            movie = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
             Function.Call(Hash.REQUEST_SCRIPT_AUDIO_BANK, "mp_wasted", 1);
+            ShardManager.LoadShard();
             isLoaded = true;
         }
 
         private void PlayMPWasted()
         {
-            if (!alreadyPlayed && isLoaded)
+            if (!playedWastedSounds && isLoaded)
             {
-                alreadyPlayed = true;
-                movie.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", wasted, "", 27); // "27" sets the color to Red, then the game automatically fades it back to white.
-                Wait(735);
+                playedWastedSounds = true;
+                Wait(750);
                 int s = Audio.PlaySoundFrontend("MP_Flash", "WastedSounds");
-                Wait(200);
-                showShard = true;
+                Wait(1000);
+                int s1 = Audio.PlaySoundFrontend("MP_Impact", "WastedSounds");
             }
         }
 
         private void CameraOn()
         {
+            ShardManager.CallShard();
             GTA.UI.Screen.StartEffect(GTA.UI.ScreenEffect.DeathFailMpIn, 0, false);
             GTA.GameplayCamera.Shake(CameraShake.DeathFail, 1f);
+
         }
 
         private void CameraOff()
         {
             playCamRepeat = true;
-            showShard = false;
             GTA.UI.Screen.StopEffect(GTA.UI.ScreenEffect.DeathFailMpIn);
             GTA.GameplayCamera.StopShaking();
+        }
+    }
+
+    public class ShardManager : Script
+    {
+
+        bool showShard = false;
+
+        public static string wasted;
+
+        public static Scaleform movie;
+
+        int tick = 0;
+
+        public ShardManager()
+        {
+            Tick += OnTick;
+        }
+
+        private void OnTick(object sender, EventArgs e)
+        {
+            if (Game.Player.Character.Health <= 0)
+                ShowShard();
+            else
+                if (tick != 0)
+                tick = 0;
+        }
+
+        public static void LoadShard()
+        {
+            wasted = Game.GetLocalizedString("RESPAWN_W_MP"); // Gets white colour Wasted variant.
+            movie = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
+        }
+
+        public static void CallShard()
+        {
+            movie.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", wasted, "", 27); // "27" sets the color to Red, then the game automatically fades it back to white.
         }
 
         private void ShowShard()
         {
-            if (showShard)
+            tick++;
+            if (tick > 140)
             {
                 movie.Render2D();
             }
         }
+
     }
 
     public class RespawnAction : Script
@@ -225,37 +258,19 @@ namespace MPWasted
         private void OnTick(object sender, EventArgs e)
         {
             tick++;
+            if (!initialized && !Game.IsLoading)
+            {
+                NoSlowMotion.NeedsHospital(false);
+                respawnpos = GetCoords();
+                MPWasted.LoadResources();
+                initialized = true;
+            }
             if (tick > 500 && Game.Player.IsAlive && !Game.IsLoading)
             {
                 respawnpos = GetCoords();
                 tick = 0;
             }
-            if (showHelpText) // Debugging, ignore.
-            {
-                switch (type)
-                {
-                    case 1:
-                        GTA.UI.Screen.ShowHelpTextThisFrame("Respawn pos = " + respawnpos.X.ToString() + "x " + respawnpos.Y.ToString() + "y " + respawnpos.Z.ToString(), true);
-                        break;
-                    case 2:
-                        Vector3 mypos = Game.Player.Character.Position;
-                        float heading = Function.Call<float>(Hash.GET_ENTITY_HEADING, Game.Player.Character);
-                        GTA.UI.Screen.ShowHelpTextThisFrame("Player pos = " + mypos.X.ToString() + "x " + mypos.Y.ToString() + "y " + mypos.Z.ToString() + "z. heading: " + heading.ToString() + "f", true);
-                        break;
-                    default:
-                        GTA.UI.Screen.ShowHelpTextThisFrame("Respawn pos = " + respawnpos.X.ToString() + "x " + respawnpos.Y.ToString() + "y " + respawnpos.Z.ToString(), true);
-                        break;
-                }
-            }
-            if (!initialized && !Game.IsLoading)
-            {
-                NoSlowMotion.NeedsHospital(false);
-                respawnpos = GetCoords();
-                Function.Call(Hash.SET_AUDIO_FLAG, "LoadMPData", true);
-                Function.Call(Hash.REQUEST_SCRIPT_AUDIO_BANK, "mp_wasted", 1);
-                initialized = true;
-            }
-            if (Game.Player.IsDead || Game.Player.Character.Health == 0)
+            if (Game.Player.Character.Health <= 0)
             {
                 Wait(4720); // 4720
                 if (!respawning)
