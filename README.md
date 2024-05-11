@@ -19,7 +19,7 @@ A ScriptHookDotNetV3 mod that replaces the regular GTA V Wasted screen for the o
 ## Contributing
 
 Pull requests are welcome.  
-Please make sure to update tests as appropriate.
+Please make sure to test changes first.
 
 ## License
 
