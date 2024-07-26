@@ -27,16 +27,16 @@ namespace MPWasted
 
         void Respawn_Controller()
         {
+            Game.Player.Character.Health = 98;
             Function.Call(Hash.DISPLAY_HUD_WHEN_NOT_IN_STATE_OF_PLAY_THIS_FRAME);
-            Function.Call(Hash.SET_RADAR_AS_EXTERIOR_THIS_FRAME);//Doesn't work here, either.
-            Function.Call(Hash.DISPLAY_RADAR, true);//Doesn't work here, either.
+            Function.Call(Hash.DISABLE_ALL_CONTROL_ACTIONS, 1);
             Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 21);
             Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 18);
             Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
             Function.Call(Hash.IGNORE_NEXT_RESTART, true);
             Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
-            Function.Call(Hash.DISPLAY_HUD, true);//Doesn't work here?
-            //Function.Call(Hash.DISPLAY_RADAR, true);//Doesn't work here, either.
+            Function.Call(Hash.DISPLAY_HUD, true);
+            Function.Call(Hash.DISPLAY_RADAR, true);
             Hud.IsVisible = true;
             Hud.IsRadarVisible = true;
             Game.Player.Character.DropsEquippedWeaponOnDeath = false;
@@ -49,6 +49,8 @@ namespace MPWasted
                 Function.Call(Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME, "respawn_controller");
             else // Set up MP Wasted.
             {
+                //Game.Player.Character.FatalInjuryHealthThreshold = 99;
+                Game.Player.Character.InjuryHealthThreshold = 99;
                 Function.Call(Hash.IGNORE_NEXT_RESTART, true);
                 Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
                 timeScale = Game.TimeScale;
@@ -60,10 +62,13 @@ namespace MPWasted
                 Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
                 needsHospital = false;
             }
-            if (Game.Player.Character.Health == 0 && !needsHospital)
+            if (Game.Player.Character.IsInjured && !needsHospital)
             {
                 timer++;
                 Function.Call(Hash.CLEAR_PED_TASKS, Game.Player.Character);
+            }
+            if (timer != 0)
+            {
                 Respawn_Controller();
             }
         }
@@ -92,6 +97,10 @@ namespace MPWasted
     public class MPWasted : Script
     {
 
+        public static string reason = "";
+
+        private Entity source;
+
         public static bool playedWastedSounds = false;
 
         private bool playedPart2 = false;
@@ -113,7 +122,7 @@ namespace MPWasted
         }
         private void OnTick(object sender, EventArgs e)
         {
-            if (Game.Player.Character.IsInjured)
+            if (NoSlowMotion.timer != 0)
             {
                 if (!isLoaded && !Game.IsLoading)
                 {
@@ -123,6 +132,17 @@ namespace MPWasted
                 {
                     //Function.Call(Hash.SET_PED_TO_RAGDOLL, Game.Player.Character, 2000, 2000, 2, false, false, false);
                     playCamRepeat = false;
+                    source = Function.Call<Entity>(Hash.GET_PED_SOURCE_OF_DEATH, Game.Player.Character);
+                    if (source == Game.Player.Character)
+                    {
+                        reason = Game.GetLocalizedString("DM_U_SUIC");
+                        GTA.UI.Notification.Show(Game.GetLocalizedString("DM_U_SUIC"));
+                    }
+                    else
+                    {
+                        reason = "";
+                        GTA.UI.Notification.Show(Game.GetLocalizedString("DM_TK_YD1"));
+                    }
                     CameraOn();
                     PlayMPWasted();
                 }
@@ -147,13 +167,14 @@ namespace MPWasted
             // }
             // if (e.KeyCode == Keys.NumPad3) // Debugging purposes
             // {
-            //     Function.Call(Hash.SET_USE_KINEMATIC_PHYSICS, Game.Player.Character, true);
+            //     //bool hidden = Function.Call(Hash.IS_HUD_HIDDEN);
+            //     //GTA.UI.Notification.Show(hidden);
+            //     //Function.Call(Hash.SET_USE_KINEMATIC_PHYSICS, Game.Player.Character, true);
             //     //CameraOff();
             //     //showShard = false;
             // }
             // if (e.KeyCode == Keys.NumPad4) // Debugging purposes
             // {
-            //     Function.Call(Hash.SET_USE_KINEMATIC_PHYSICS, Game.Player.Character, false);
             //     //CameraOff();
             //     //showShard = false;
             // }
@@ -197,7 +218,6 @@ namespace MPWasted
             GTA.GameplayCamera.StopShaking();
             Audio.ReleaseSound(s);
             Audio.ReleaseSound(s1);
-            NoSlowMotion.timer = 0;
         }
     }
 
@@ -219,7 +239,7 @@ namespace MPWasted
 
         private void OnTick(object sender, EventArgs e)
         {
-            if (Game.Player.Character.IsInjured)
+            if (NoSlowMotion.timer != 0)
                 ShowShard();
         }
 
@@ -231,7 +251,7 @@ namespace MPWasted
 
         public static void CallShard()
         {
-            movie.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", wasted, "", 27); // "27" sets the color to Red, then the game automatically fades it back to white.
+            movie.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", wasted, MPWasted.reason, 27); // "27" sets the color to Red, then the game automatically fades it back to white.
         }
 
         private void ShowShard()
@@ -288,9 +308,9 @@ namespace MPWasted
                 respawnpos = GetCoords();
                 tick = 0;
             }
-            if (Game.Player.Character.Health <= 0)
+            if (MPWasted.playedWastedSounds == true)
             {
-                Wait(4720); // 4720
+                Wait(4000); // 4720
                 if (!respawning)
                     Respawn();
             }
@@ -386,10 +406,10 @@ namespace MPWasted
             do
             {
                 i = i + 33;
-                rand.X = rng.Next(-180 - i, 180 + i);
-                rand.Y = rng.Next(-180 - i, 180 + i);
+                rand.X = rng.Next(-130 - i, 130 + i);
+                rand.Y = rng.Next(-130 - i, 130 + i);
                 rand.Z = rng.Next(-15, 50);
-                range = rng.Next(50, 150 + i);
+                range = rng.Next(50, 130 + i);
                 coords = Game.Player.Character.Position;
                 point = Function.Call<Vector3>(Hash.FIND_SPAWN_POINT_IN_DIRECTION, coords.X + rand.X, coords.Y + rand.Y, coords.Z + rand.Z, rand.X, rand.Y, rand.Z, range, tempcoords);
                 spawnPoint = GTA.World.GetSafeCoordForPed(tempcoords.GetResult<Vector3>(), paviment, 0);
@@ -425,6 +445,7 @@ namespace MPWasted
             Function.Call(Hash.NETWORK_REQUEST_CONTROL_OF_ENTITY, Game.Player.Character);
             if (respawnpos.X != 0f && respawnpos.Y != 0f && respawnpos.Z != 0f)
             {
+                NoSlowMotion.timer = 0;
                 Function.Call(Hash.LOAD_SCENE, respawnpos.X, respawnpos.Y, respawnpos.Z);
                 Function.Call(Hash.NETWORK_RESURRECT_LOCAL_PLAYER, respawnpos.X, respawnpos.Y, respawnpos.Z, heading, false, false, false, false, false);
                 Function.Call(Hash.CLEAR_AREA, respawnpos.X, respawnpos.Y, respawnpos.Z, 6000, false, false, false, false);
@@ -432,13 +453,16 @@ namespace MPWasted
                 World.CurrentTimeOfDay = time;
                 Wait(100);
                 GTA.UI.Screen.FadeIn(550);
+                Game.Player.IsInvincible = false;
                 respawning = false;
             }
             else
             {
+                Game.Player.IsInvincible = false;
                 respawning = false;
                 Softlock(); // Should never happen.
             }
+            Function.Call(Hash.ENABLE_ALL_CONTROL_ACTIONS, 1);
         }
 
         //GTA.UI.Notification.Show(GTA.UI.NotificationIcon.SocialClub, "Debug", "MPWasted", Game.Player.Character.Position.X.ToString() + "X " + Game.Player.Character.Position.Y.ToString() + "Y " + Game.Player.Character.Position.Z.ToString() + "Z " + Game.Player.Character.Heading.ToString() + "Heading", false, false);
@@ -451,6 +475,7 @@ namespace MPWasted
             Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
             Wait(200);
             GTA.UI.Screen.FadeIn(550);
+            NoSlowMotion.timer = 0;
             //GTA.UI.Notification.Show(GTA.UI.NotificationIcon.SocialClub, "Debug", "MPWasted", "Prevented softlock, respawned at last location.", false, false);
         }
 
