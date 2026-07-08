@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Diagnostics;
@@ -16,6 +16,8 @@ namespace MPWasted
 
         public static int timer = 0;
 
+        int injuredHealth = 100;
+
         public static bool needsHospital;
 
         public NoSlowMotion()
@@ -27,12 +29,18 @@ namespace MPWasted
 
         void Respawn_Controller()
         {
-            Game.Player.Character.Health = 98;
+            //Game.Player.Character.Health = 98;
+            //Game.Player.Character.InjuryHealthThreshold = 101;
+            //Game.Player.Character.FatalInjuryHealthThreshold = 101;
+            GlobalVariable.Get(5).Write(4);
             Function.Call(Hash.DISPLAY_HUD_WHEN_NOT_IN_STATE_OF_PLAY_THIS_FRAME);
             Function.Call(Hash.DISABLE_ALL_CONTROL_ACTIONS, 1);
             Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 21);
             Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 18);
+            Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 141);
+            Function.Call(Hash.SHOW_HUD_COMPONENT_THIS_FRAME, 0);
             Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
+            Function.Call(Hash.FORCE_RENDER_IN_GAME_UI, true);
             Function.Call(Hash.IGNORE_NEXT_RESTART, true);
             Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
             Function.Call(Hash.DISPLAY_HUD, true);
@@ -45,28 +53,43 @@ namespace MPWasted
 
         private void OnTick(object sender, EventArgs e)
         {
-            if (!needsHospital) // Show regular Wasted if needed.
+            if (!needsHospital)
+            { // Show regular Wasted if true.
+                Function.Call(Hash.FORCE_CLEANUP_FOR_ALL_THREADS_WITH_THIS_NAME, "respawn_controller", 3);
                 Function.Call(Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME, "respawn_controller");
+            }
             else // Set up MP Wasted.
             {
-                //Game.Player.Character.FatalInjuryHealthThreshold = 99;
-                Game.Player.Character.InjuryHealthThreshold = 99;
-                Function.Call(Hash.IGNORE_NEXT_RESTART, true);
-                Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
-                timeScale = Game.TimeScale;
-                if (timeScale != 1f)
-                    Game.TimeScale = 1f;
-                if (timeScale != 1f)
-                    Game.TimeScale = 1f;
-                GTA.UI.Screen.StopEffects();
-                Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
-                needsHospital = false;
+                if (!Function.Call<bool>(Hash.IS_PLAYER_BEING_ARRESTED, Game.Player, false) || !Function.Call<bool>(Hash.IS_PLAYER_BEING_ARRESTED, Game.Player, true))
+                {
+                    //Game.Player.Character.FatalInjuryHealthThreshold = 99;
+                    //Game.Player.Character.InjuryHealthThreshold = 99;
+                    Function.Call(Hash.IGNORE_NEXT_RESTART, true);
+                    Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
+                    timeScale = Game.TimeScale;
+                    if (timeScale != 1f)
+                        Game.TimeScale = 1f;
+                    if (timeScale != 1f)
+                        Game.TimeScale = 1f;
+                    Function.Call(Hash.FORCE_GAME_STATE_PLAYING);
+                    Game.Player.Character.HasBeenDamagedBy(WeaponHash.StickyBomb);
+                }
+                else
+                {
+                    Function.Call(Hash.IGNORE_NEXT_RESTART, false);
+                    Wait(22500);
+                }
             }
-            if (Game.Player.Character.IsInjured && !needsHospital)
+            if (Game.Player.Character.IsInjured && !needsHospital && !GTA.UI.Screen.IsFadingOut)
             {
                 timer++;
-                Function.Call(Hash.CLEAR_PED_TASKS, Game.Player.Character);
-            }
+                //Function.Call(Hash.CLEAR_PED_TASKS, Game.Player.Character);
+                //GTA.UI.Notification.Show(GTA.UI.Hud.IsRadarVisible.ToString()); // Function.Call(Hash.ON_ENTER_MP);
+            } //Game.Character.Ragdoll Function.Call(Hash.SET_PED_TO_RAGDOLL, Game.Player.Character, 5000, 5000, 2, 1, 1, 0);
+            //Game.Character.Ragdoll Function.Call(Hash.SET_PED_RAGDOLL_FORCE_FALL, Game.Player.Character);
+            // Function.Call(Hash.SET_PED_TO_RAGDOLL_WITH_FALL, Game.Player.Character, 5000, 5000, 2, 1f, 0f, 0f, 0f, 0f, 0f, 0f);
+            //Function.Call(Hash.SET_INSTANCE_PRIORITY_MODE, 1);
+            // Function.Call(Hash.HIDE_HUD_AND_RADAR_THIS_FRAME);
             if (timer != 0)
             {
                 Respawn_Controller();
@@ -75,7 +98,20 @@ namespace MPWasted
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-        }
+            if (e.KeyCode == Keys.NumPad4) // Debugging purposes
+            {
+                //cam.Delete();
+            }
+            if (e.KeyCode == Keys.NumPad5) // Debugging purposes Function.Call(Hash.SET_SCRIPT_AS_NO_LONGER_NEEDED
+                {
+                    
+                //     Camera cam = GTA.Camera.Create("fallback", true);
+                //     Vector3 vec = new Vector3(0f, 0f, 0f);
+                //     Ped clone = Game.Player.Character.Clone(true);
+                //     cam.AttachTo(clone, clone.Position);
+                //     GTA.UI.Notification.Show(Function.Call(Hash.SET_PLAYER_IS_IN_DIRECTOR_MODE, "scaleform_minimap").ToString());
+                }
+            }
 
         private void OnKeyUp(object sender, KeyEventArgs e)
         {
@@ -94,12 +130,77 @@ namespace MPWasted
         }
     }
 
+    // public class WastedCam : Script
+    // {
+    //     public WastedCam()
+    //     {
+    //         Tick += OnTick;
+    //         KeyUp += OnKeyUp;
+    //         KeyDown += OnKeyDown;
+    //     }
+
+    //     public static bool enableCamera = false;
+
+    //     public static GTA.Camera cam;
+
+    //     private void OnTick(object sender, EventArgs e)
+    //     {
+    //         if (enableCamera && cam == null && MPWasted.source != null)
+    //         {
+    //             if (MPWasted.source != Game.Player.Character)
+    //             {
+    //                 cam = Function.Call<Camera>(Hash.CREATE_CAM, "DEFAULT_SCRIPTED_CAMERA", true);
+    //                 Function.Call(Hash.SET_CAM_COORD, cam, MPWasted.source.Position.X + 2f, MPWasted.source.Position.Y + 2f, Game.Player.Character.Position.Z + 3f);
+    //                 Function.Call(Hash.POINT_CAM_AT_ENTITY, cam, MPWasted.source, 0f, 0f, 0f, true);
+    //                 cam.Shake(CameraShake.Hand, 2.5f);
+    //                 Function.Call(Hash.RENDER_SCRIPT_CAMS, true, false, 0, true, false, 0);
+    //                 Wait(3000);
+    //                 Function.Call(Hash.DESTROY_ALL_CAMS, true);
+    //                 Function.Call(Hash.RENDER_SCRIPT_CAMS, false, false, 0, true, false, 0);
+    //             }
+    //         }
+    //     }
+    //     private void OnKeyDown(object sender, KeyEventArgs e)
+    //     {
+    //         if (e.KeyCode == Keys.NumPad4) // Debugging purposes
+    //         {
+    //             cam = Function.Call<Camera>(Hash.CREATE_CAM, "DEFAULT_SCRIPTED_CAMERA", true);
+    //             Function.Call(Hash.SET_CAM_COORD, cam, Game.Player.Character.Position.X + 0.5f, Game.Player.Character.Position.Y + 0.5f, Game.Player.Character.Position.Z + 4f);
+    //             Function.Call(Hash.POINT_CAM_AT_ENTITY, cam, Game.Player.Character, 0f, 0f, 0f, true);
+    //             cam.Shake(CameraShake.Hand, 2.5f);
+    //             Function.Call(Hash.RENDER_SCRIPT_CAMS, true, false, 0, true, false, 0);
+    //             Wait(3000);
+    //             Function.Call(Hash.DESTROY_ALL_CAMS, true);
+    //             Function.Call(Hash.RENDER_SCRIPT_CAMS, false, false, 0, true, false, 0);
+    //         }
+    //         if (e.KeyCode == Keys.NumPad4) // Debugging purposes
+    //         {
+    //             MPWasted.CameraOn();
+    //         }
+    //         if (e.KeyCode == Keys.NumPad5) // Debugging purposes
+    //         {
+    //             MPWasted.CameraOff();
+    //         }
+    //     }
+    //     private void OnKeyUp(object sender, KeyEventArgs e)
+    //     {
+    //         if (e.KeyCode == Keys.NumPad4) // Debugging purposes
+    //         {
+    //             MPWasted.CameraOn();
+    //         }
+    //         if (e.KeyCode == Keys.NumPad5) // Debugging purposes
+    //         {
+    //             MPWasted.CameraOff();
+    //         }
+    //     }
+    // }
+
     public class MPWasted : Script
     {
 
         public static string reason = "";
 
-        private Entity source;
+        public static Entity source;
 
         public static bool playedWastedSounds = false;
 
@@ -201,23 +302,28 @@ namespace MPWasted
                 s = Audio.PlaySoundFrontend("MP_Flash", "WastedSounds");
                 Wait(1000);
                 s1 = Audio.PlaySoundFrontend("MP_Impact", "WastedSounds");
+                //WastedCam.enableCamera = true;
             }
         }
 
         private void CameraOn()
         {
             ShardManager.CallShard();
-            GTA.UI.Screen.StartEffect(GTA.UI.ScreenEffect.DeathFailMpIn, 0, false);
+            Game.Player.Character.CanBeTargetted = false;
+            GTA.UI.Screen.StartEffect(GTA.UI.ScreenEffect.DeathFailMpIn, 10, false);
             GTA.GameplayCamera.Shake(CameraShake.DeathFail, 1f);
         }
 
         private void CameraOff()
         {
             playCamRepeat = true;
+            Game.Player.Character.CanBeTargetted = true;
             GTA.UI.Screen.StopEffect(GTA.UI.ScreenEffect.DeathFailMpIn);
             GTA.GameplayCamera.StopShaking();
             Audio.ReleaseSound(s);
             Audio.ReleaseSound(s1);
+            //WastedCam.enableCamera = false;
+            //WastedCam.cam = null;
         }
     }
 
@@ -296,13 +402,15 @@ namespace MPWasted
         private void OnTick(object sender, EventArgs e)
         {
             tick++;
-            if (!initialized && !Game.IsLoading)
+            if (!initialized && !Game.IsLoading && !Function.Call<bool>(Hash.IS_PLAYER_BEING_ARRESTED, Game.Player, false) || !Function.Call<bool>(Hash.IS_PLAYER_BEING_ARRESTED, Game.Player, true))
             {
                 NoSlowMotion.NeedsHospital(false);
                 respawnpos = GetCoords();
                 MPWasted.LoadResources();
                 initialized = true;
             }
+            else
+                NoSlowMotion.NeedsHospital(true);
             if (tick > 500 && Game.Player.IsAlive && !Game.IsLoading)
             {
                 respawnpos = GetCoords();
@@ -405,11 +513,11 @@ namespace MPWasted
             OutputArgument temproadheading = new OutputArgument();
             do
             {
-                i = i + 33;
-                rand.X = rng.Next(-130 - i, 130 + i);
-                rand.Y = rng.Next(-130 - i, 130 + i);
+                i = i + 35;
+                rand.X = rng.Next(-133 - i, 133 + i);
+                rand.Y = rng.Next(-133 - i, 133 + i);
                 rand.Z = rng.Next(-15, 50);
-                range = rng.Next(50, 130 + i);
+                range = rng.Next(50, 133 + i);
                 coords = Game.Player.Character.Position;
                 point = Function.Call<Vector3>(Hash.FIND_SPAWN_POINT_IN_DIRECTION, coords.X + rand.X, coords.Y + rand.Y, coords.Z + rand.Z, rand.X, rand.Y, rand.Z, range, tempcoords);
                 spawnPoint = GTA.World.GetSafeCoordForPed(tempcoords.GetResult<Vector3>(), paviment, 0);
@@ -463,6 +571,9 @@ namespace MPWasted
                 Softlock(); // Should never happen.
             }
             Function.Call(Hash.ENABLE_ALL_CONTROL_ACTIONS, 1);
+            Game.Player.Character.CanBeTargetted = true;
+            MPWasted.source = null;
+            //GTA.UI.Screen.StopEffects();
         }
 
         //GTA.UI.Notification.Show(GTA.UI.NotificationIcon.SocialClub, "Debug", "MPWasted", Game.Player.Character.Position.X.ToString() + "X " + Game.Player.Character.Position.Y.ToString() + "Y " + Game.Player.Character.Position.Z.ToString() + "Z " + Game.Player.Character.Heading.ToString() + "Heading", false, false);
